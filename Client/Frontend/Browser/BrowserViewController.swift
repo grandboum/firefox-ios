@@ -1700,7 +1700,7 @@ class BrowserViewController: UIViewController,
                     }
                 })
             case .formSubmit:
-                self?.showCreditCardAutofillSheet(fieldValues: fieldValues)
+                self?.handleCreditCardFormSubmission(fieldValues: fieldValues)
                 break
             }
 
@@ -1750,22 +1750,12 @@ class BrowserViewController: UIViewController,
         }
     }
 
-    func showCreditCardAutofillSheet(fieldValues: UnencryptedCreditCardFields) {
+    func handleCreditCardFormSubmission(fieldValues: UnencryptedCreditCardFields) {
         self.profile.autofill.checkForCreditCardExistance(cardNumber: fieldValues.ccNumberLast4) {
             existingCard, error in
             guard let existingCard = existingCard else {
                 DispatchQueue.main.async {
-                    if CoordinatorFlagManager.isCredentialAutofillCoordinatorEnabled {
-                        self.navigationHandler?.showCreditCardAutofill(creditCard: nil,
-                                                                       decryptedCard: fieldValues,
-                                                                       viewType: .save,
-                                                                       frame: nil,
-                                                                       alertContainer: self.contentContainer)
-                    } else {
-                        self.showBottomSheetCardViewController(creditCard: nil,
-                                                               decryptedCard: fieldValues,
-                                                               viewType: .save)
-                    }
+                    self.showCreditCardAutofillSheet(card: nil, fieldValues: fieldValues, viewType: .save)
                 }
                 return
             }
@@ -1773,20 +1763,28 @@ class BrowserViewController: UIViewController,
             // card already saved should update if any of its other values are different
             if !fieldValues.isEqualToCreditCard(creditCard: existingCard) {
                 DispatchQueue.main.async {
-                    if CoordinatorFlagManager.isCredentialAutofillCoordinatorEnabled {
-                        self.navigationHandler?.showCreditCardAutofill(creditCard: existingCard,
-                                                                       decryptedCard: fieldValues,
-                                                                       viewType: .update,
-                                                                       frame: nil,
-                                                                       alertContainer: self.contentContainer)
-                    } else {
-                        self.showBottomSheetCardViewController(creditCard: existingCard,
-                                                               decryptedCard: fieldValues,
-                                                               viewType: .update)
-                    }
+                    self.showCreditCardAutofillSheet(card: existingCard, fieldValues: fieldValues, viewType: .update)
                 }
             }
         }
+    }
+
+    func showCreditCardAutofillSheet(
+        card: CreditCard?,
+        fieldValues: UnencryptedCreditCardFields,
+        viewType: CreditCardBottomSheetState) {
+        guard CoordinatorFlagManager.isCredentialAutofillCoordinatorEnabled else {
+            self.showBottomSheetCardViewController(creditCard: card,
+                                                   decryptedCard: fieldValues,
+                                                   viewType: viewType)
+            return
+        }
+
+        self.navigationHandler?.showCreditCardAutofill(creditCard: card,
+                                                       decryptedCard: fieldValues,
+                                                       viewType: viewType,
+                                                       frame: nil,
+                                                       alertContainer: self.contentContainer)
     }
 
     // MARK: Themeable
