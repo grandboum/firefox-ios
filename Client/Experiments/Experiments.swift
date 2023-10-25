@@ -127,7 +127,34 @@ enum Experiments {
     }
 
     /// The `NimbusApi` object. This is the entry point to do anything with the Nimbus SDK on device.
-    public static var shared: NimbusInterface = {
+    public static var shared: NimbusInterface = { buildInterface() }()
+
+    /// A convenience method to initialize the `NimbusApi` object at startup.
+    ///
+    /// This includes opening the database, connecting to the Remote Settings server, and downloading
+    /// and applying changes.
+    ///
+    /// All this is set to run off the main thread.
+    ///
+    /// - Parameters:
+    ///     - fireURL: an optional file URL that stores the initial experiments document.
+    ///     - firstRun: a flag indicating that this is the first time that the app has been run.
+    public static func intialize() {
+        // Getting the singleton first time initializes it.
+        let nimbus = Experiments.shared
+
+        DefaultLogger.shared.log("Nimbus is ready!",
+                                 level: .info,
+                                 category: .experiments)
+
+        // This does its work on another thread, downloading the experiment recipes
+        // for the next run. It should be the last thing we do before returning.
+        nimbus.fetchExperiments()
+    }
+}
+
+private extension Experiments {
+    static func buildInterface() -> NimbusInterface {
         let defaults = UserDefaults.standard
         let isFirstRun: Bool = defaults.object(forKey: NIMBUS_IS_FIRST_RUN_KEY) == nil
         if isFirstRun {
@@ -180,29 +207,6 @@ enum Experiments {
             .with(featureManifest: FxNimbus.shared)
             .with(commandLineArgs: CommandLine.arguments)
             .build(appInfo: appSettings)
-    }()
-
-    /// A convenience method to initialize the `NimbusApi` object at startup.
-    ///
-    /// This includes opening the database, connecting to the Remote Settings server, and downloading
-    /// and applying changes.
-    ///
-    /// All this is set to run off the main thread.
-    ///
-    /// - Parameters:
-    ///     - fireURL: an optional file URL that stores the initial experiments document.
-    ///     - firstRun: a flag indicating that this is the first time that the app has been run.
-    public static func intialize() {
-        // Getting the singleton first time initializes it.
-        let nimbus = Experiments.shared
-
-        DefaultLogger.shared.log("Nimbus is ready!",
-                                 level: .info,
-                                 category: .experiments)
-
-        // This does its work on another thread, downloading the experiment recipes
-        // for the next run. It should be the last thing we do before returning.
-        nimbus.fetchExperiments()
     }
 }
 
