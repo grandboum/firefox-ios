@@ -56,10 +56,8 @@ class Authenticator {
         return loginsProvider.getLoginsForProtectionSpace(challenge.protectionSpace) >>== { cursor in
             guard cursor.count >= 1 else { return deferMaybe(nil) }
 
-            let logins = cursor.compactMap {
-                // HTTP Auth must have nil formSubmitUrl and a non-nil httpRealm.
-                return $0?.formSubmitUrl == nil && $0?.httpRealm != nil ? $0 : nil
-            }
+            // HTTP Auth must have nil formSubmitUrl and a non-nil httpRealm.
+            let logins = cursor.compactMap { $0?.formSubmitUrl == nil && $0?.httpRealm != nil ? $0 : nil }
             var credentials: URLCredential?
 
             // It is possible that we might have duplicate entries since we match against host and scheme://host.
